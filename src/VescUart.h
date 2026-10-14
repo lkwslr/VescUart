@@ -157,6 +157,12 @@ class VescUart
          * @param      duty  - The desired duty (0.0-1.0)
          */
         void setDuty(float duty);
+        
+        /**
+         * @brief Setzt den Haltestrom (Handbrake) für den VESC
+         * @param current Der Haltestrom in Ampere
+         */
+        void setHandbrake(float current);
 
         /**
          * @brief      Set the duty of the motor

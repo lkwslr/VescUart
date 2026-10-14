@@ -32,7 +32,7 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 	bool messageRead = false;
 	uint8_t messageReceived[256];
 	uint16_t lenPayload = 0;
-	
+
 	uint32_t timeout = millis() + _TIMEOUT; // Defining the timestamp for timeout (100ms before timeout)
 
 	while ( millis() < timeout && messageRead == false) {
@@ -82,7 +82,7 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 	if(messageRead == false && debugPort != NULL ) {
 		debugPort->println("Timeout");
 	}
-	
+
 	bool unpacked = false;
 
 	if (messageRead) {
@@ -91,7 +91,7 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 
 	if (unpacked) {
 		// Message was read
-		return lenPayload; 
+		return lenPayload;
 	}
 	else {
 		// No Message Read
@@ -122,10 +122,10 @@ bool VescUart::unpackPayload(uint8_t * message, int lenMes, uint8_t * payload) {
 	if( debugPort != NULL ){
 		debugPort->print("SRC calc: "); debugPort->println(crcPayload);
 	}
-	
+
 	if (crcPayload == crcMessage) {
 		if( debugPort != NULL ) {
-			debugPort->print("Received: "); 
+			debugPort->print("Received: ");
 			serialPrint(message, lenMes); debugPort->println();
 
 			debugPort->print("Payload :      ");
@@ -144,7 +144,7 @@ int VescUart::packSendPayload(uint8_t * payload, int lenPay) {
 	uint16_t crcPayload = crc16(payload, lenPay);
 	int count = 0;
 	uint8_t messageSend[256];
-	
+
 	if (lenPay <= 256)
 	{
 		messageSend[count++] = 2;
@@ -164,7 +164,7 @@ int VescUart::packSendPayload(uint8_t * payload, int lenPay) {
 	messageSend[count++] = (uint8_t)(crcPayload & 0xFF);
 	messageSend[count++] = 3;
 	// messageSend[count] = NULL;
-	
+
 	if(debugPort!=NULL){
 		debugPort->print("Package to send: "); serialPrint(messageSend, count);
 	}
@@ -211,7 +211,7 @@ bool VescUart::processReadPacket(uint8_t * message) {
 			data.tachometerAbs 		= buffer_get_int32(message, &index);				// 4 bytes - mc_interface_get_tachometer_abs_value(false)
 			data.error 				= (mc_fault_code)message[index++];								// 1 byte  - mc_interface_get_fault()
 			data.pidPos				= buffer_get_float32(message, 1000000.0, &index);	// 4 bytes - mc_interface_get_pid_pos_now()
-			data.id					= message[index++];								// 1 byte  - app_get_configuration()->controller_id	
+			data.id					= message[index++];								// 1 byte  - app_get_configuration()->controller_id
 
 			return true;
 
@@ -232,11 +232,11 @@ bool VescUart::getFWversion(void){
 }
 
 bool VescUart::getFWversion(uint8_t canId){
-	
+
 	int32_t index = 0;
 	int payloadSize = (canId == 0 ? 1 : 3);
 	uint8_t payload[payloadSize];
-	
+
 	if (canId != 0) {
 		payload[index++] = { COMM_FORWARD_CAN };
 		payload[index++] = canId;
@@ -247,8 +247,8 @@ bool VescUart::getFWversion(uint8_t canId){
 
 	uint8_t message[256];
 	int messageLength = receiveUartMessage(message);
-	if (messageLength > 0) { 
-		return processReadPacket(message); 
+	if (messageLength > 0) {
+		return processReadPacket(message);
 	}
 	return false;
 }
@@ -278,7 +278,7 @@ bool VescUart::getVescValues(uint8_t canId) {
 	int messageLength = receiveUartMessage(message);
 
 	if (messageLength > 55) {
-		return processReadPacket(message); 
+		return processReadPacket(message);
 	}
 	return false;
 }
@@ -290,7 +290,7 @@ void VescUart::setNunchuckValues(uint8_t canId) {
 
 	if(debugPort!=NULL){
 		debugPort->println("Command: COMM_SET_CHUCK_DATA "+String(canId));
-	}	
+	}
 	int32_t index = 0;
 	int payloadSize = (canId == 0 ? 11 : 13);
 	uint8_t payload[payloadSize];
@@ -304,7 +304,7 @@ void VescUart::setNunchuckValues(uint8_t canId) {
 	payload[index++] = nunchuck.valueY;
 	buffer_append_bool(payload, nunchuck.lowerButton, &index);
 	buffer_append_bool(payload, nunchuck.upperButton, &index);
-	
+
 	// Acceleration Data. Not used, Int16 (2 byte)
 	payload[index++] = 0;
 	payload[index++] = 0;
@@ -356,6 +356,27 @@ void VescUart::setBrakeCurrent(float brakeCurrent, uint8_t canId) {
 	buffer_append_int32(payload, (int32_t)(brakeCurrent * 1000), &index);
 
 	packSendPayload(payload, payloadSize);
+}
+
+void VescUart::setHandbrake(float current) {
+    int32_t index = 0;
+    uint8_t payload[5];
+
+    // Befehls-ID für Handbremse
+    payload[index++] = COMM_SET_HANDBRAKE;
+
+    // Stromwert in mA umrechnen (als 32-Bit Ganzzahl)
+    int32_t val = (int32_t)(current * 1000.0);
+
+    // Den 32-Bit Wert manuell in 4 einzelne Bytes aufteilen (Big-Endian)
+    payload[index++] = (val >> 24) & 0xFF;
+    payload[index++] = (val >> 16) & 0xFF;
+    payload[index++] = (val >> 8)  & 0xFF;
+    payload[index++] = val & 0xFF;
+    // buffer_append_int32(payload, (int32_t)(brakeCurrent * 1000), &index);
+
+    // Paket an den VESC senden
+    packSendPayload(payload, 5);
 }
 
 void VescUart::setRPM(float rpm) {

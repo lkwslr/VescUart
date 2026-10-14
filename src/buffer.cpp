@@ -110,9 +110,9 @@ void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
 		e += 126;
 	}
 
-	uint32_t res = ((e & 0xFF) << 23) | (sig_i & 0x7FFFFF);
+uint32_t res = (((uint32_t)(e & 0xFF)) << 23) | (sig_i & 0x7FFFFF);
 	if (sig < 0) {
-		res |= 1U << 31;
+		res |= 1UL << 31;
 	}
 
 	buffer_append_uint32(buffer, res, index);
@@ -163,7 +163,7 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
 
 	int e = (res >> 23) & 0xFF;
 	uint32_t sig_i = res & 0x7FFFFF;
-	bool neg = res & (1U << 31);
+	bool neg = res & (1UL << 31);
 
 	float sig = 0.0;
 	if (e != 0 || sig_i != 0) {
