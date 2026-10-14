@@ -3,8 +3,6 @@
 
 #include <Arduino.h>
 #include "datatypes.h"
-#include "buffer.h"
-#include "crc.h"
 
 class VescUart
 {
@@ -26,7 +24,7 @@ class VescUart
         float tempMotor;
         float pidPos;
         uint8_t id;
-        mc_fault_code error; 
+        mc_fault_code error;
 	};
 
 	/** Struct to hold the nunchuck values to send over UART */
@@ -52,23 +50,23 @@ class VescUart
 		VescUart(uint32_t timeout_ms = 100);
 
 		/** Variabel to hold measurements returned from VESC */
-		dataPackage data; 
+		dataPackage data;
 
 		/** Variabel to hold nunchuck values */
-		nunchuckPackage nunchuck; 
+		nunchuckPackage nunchuck;
 
        /** Variable to hold firmware version */
-        FWversionPackage fw_version; 
+        FWversionPackage fw_version;
 
         /**
          * @brief      Set the serial port for uart communication
-         * @param      port  - Reference to Serial port (pointer) 
+         * @param      port  - Reference to Serial port (pointer)
          */
         void setSerialPort(Stream* port);
 
         /**
          * @brief      Set the serial port for debugging
-         * @param      port  - Reference to Serial port (pointer) 
+         * @param      port  - Reference to Serial port (pointer)
          */
         void setDebugPort(Stream* port);
 
@@ -143,7 +141,7 @@ class VescUart
          * @brief      Set the rpm of the motor
          * @param      rpm  - The desired RPM (actually eRPM = RPM * poles)
          */
-        void setRPM(float rpm);		
+        void setRPM(float rpm);
 
         /**
          * @brief      Set the rpm of the motor
@@ -157,7 +155,7 @@ class VescUart
          * @param      duty  - The desired duty (0.0-1.0)
          */
         void setDuty(float duty);
-        
+
         /**
          * @brief Setzt den Haltestrom (Handbrake) für den VESC
          * @param current Der Haltestrom in Ampere
@@ -187,12 +185,12 @@ class VescUart
          */
         void printVescValues(void);
 
-	private: 
+	private:
 
 		/** Variabel to hold the reference to the Serial object to use for UART */
 		Stream* serialPort = NULL;
 
-		/** Variabel to hold the reference to the Serial object to use for debugging. 
+		/** Variabel to hold the reference to the Serial object to use for debugging.
 		  * Uses the class Stream instead of HarwareSerial */
 		Stream* debugPort = NULL;
 
