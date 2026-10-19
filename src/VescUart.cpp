@@ -41,6 +41,13 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 
 		while (serialPort->available()) {
 
+			// Grenzprüfung VOR dem Schreiben: früher wurde erst nach dem Schreiben
+			// geprüft und nur die innere Schleife verlassen; die äußere Schleife
+			// schrieb dann bis zum Timeout hinter das Array (Stack-Überlauf).
+			if (counter >= sizeof(messageReceived)) {
+				break;
+			}
+
 			messageReceived[counter++] = serialPort->read();
 
 			if (counter == 2) {
@@ -67,12 +74,11 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 				}
 			}
 
-			if (counter >= sizeof(messageReceived)) {
-				break;
-			}
-
 			if (counter == endMessage && messageReceived[endMessage - 1] == 3) {
-				messageReceived[endMessage] = 0;
+				// Bei endMessage == 256 läge dieser Index hinter dem Array
+				if (endMessage < sizeof(messageReceived)) {
+					messageReceived[endMessage] = 0;
+				}
 				if (debugPort != NULL) {
 					debugPort->println("End of message reached!");
 				}
@@ -245,6 +251,10 @@ bool VescUart::getFWversion(uint8_t canId){
 	}
 	payload[index++] = { COMM_FW_VERSION };
 
+	// Alte Bytes (z. B. Rest einer verspäteten Antwort) verwerfen, damit die
+	// Antwort auf diese Anfrage nicht mit Altdaten vermischt wird.
+	while (serialPort != NULL && serialPort->available()) serialPort->read();
+
 	packSendPayload(payload, payloadSize);
 
 	uint8_t message[256];
@@ -273,6 +283,10 @@ bool VescUart::getVescValues(uint8_t canId) {
 		payload[index++] = canId;
 	}
 	payload[index++] = { COMM_GET_VALUES };
+
+	// Alte Bytes (z. B. Rest einer verspäteten Antwort) verwerfen, damit die
+	// Antwort auf diese Anfrage nicht mit Altdaten vermischt wird.
+	while (serialPort != NULL && serialPort->available()) serialPort->read();
 
 	packSendPayload(payload, payloadSize);
 
