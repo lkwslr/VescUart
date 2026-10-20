@@ -32,12 +32,13 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 	uint16_t counter = 0;
 	uint16_t endMessage = 256;
 	bool messageRead = false;
+	bool packetSizeExceeded = false;
 	uint8_t messageReceived[256];
 	uint16_t lenPayload = 0;
 
 	uint32_t timeout = millis() + _TIMEOUT; // Defining the timestamp for timeout (100ms before timeout)
 
-	while ( millis() < timeout && messageRead == false) {
+	while ( millis() < timeout && messageRead == false && packetSizeExceeded == false) {
 
 		while (serialPort->available()) {
 
@@ -68,6 +69,10 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 			}
 
 			if (counter >= sizeof(messageReceived)) {
+			    packetSizeExceeded = true;
+				if( debugPort != NULL ){
+					debugPort->println("Packet size exceeded");
+				}
 				break;
 			}
 
@@ -130,7 +135,7 @@ bool VescUart::unpackPayload(uint8_t * message, int lenMes, uint8_t * payload) {
 			debugPort->print("Received: ");
 			serialPrint(message, lenMes); debugPort->println();
 
-			debugPort->print("Payload :      ");
+			debugPort->print("Payload: ");
 			serialPrint(payload, message[1] - 1); debugPort->println();
 		}
 
@@ -155,7 +160,7 @@ int VescUart::packSendPayload(uint8_t * payload, int lenPay) {
 	else
 	{
 		messageSend[count++] = 3;
-		messageSend[count++] = (uint8_t)(lenPay >> 8);
+		messageSend[count++] = static_cast<uint8_t>(lenPay >> 8);
 		messageSend[count++] = (uint8_t)(lenPay & 0xFF);
 	}
 
@@ -194,6 +199,7 @@ bool VescUart::processReadPacket(uint8_t * message) {
 			fw_version.major = message[index++];
 			fw_version.minor = message[index++];
 			return true;
+		break;
 		case COMM_GET_VALUES: // Structure defined here: https://github.com/vedderb/bldc/blob/43c3bbaf91f5052a35b75c2ff17b5fe99fad94d1/commands.c#L164
 
 			data.tempMosfet 		= buffer_get_float16(message, 10.0, &index); 	// 2 bytes - mc_interface_temp_fet_filtered()
@@ -318,7 +324,7 @@ void VescUart::setNunchuckValues(uint8_t canId) {
 	if(debugPort != NULL){
 		debugPort->println("Nunchuck Values:");
 		debugPort->print("x="); debugPort->print(nunchuck.valueX); debugPort->print(" y="); debugPort->print(nunchuck.valueY);
-		debugPort->print(" LBTN="); debugPort->print(nunchuck.lowerButton); debugPort->print(" UBTN="); debugPort->println(nunchuck.upperButton);
+		debugPort->print("LBTN="); debugPort->print(nunchuck.lowerButton); debugPort->print(" UBTN="); debugPort->println(nunchuck.upperButton);
 	}
 
 	packSendPayload(payload, payloadSize);
@@ -360,25 +366,14 @@ void VescUart::setBrakeCurrent(float brakeCurrent, uint8_t canId) {
 	packSendPayload(payload, payloadSize);
 }
 
-void VescUart::setHandbrake(float current) {
-    int32_t index = 0;
-    uint8_t payload[5];
+void VescUart::setHandBrakeCurrent(float brakeCurrent) {
+	int32_t index = 0;
+	uint8_t payload[5];
 
-    // Befehls-ID für Handbremse
-    payload[index++] = COMM_SET_HANDBRAKE;
+	payload[index++] = COMM_SET_HANDBRAKE;
+	buffer_append_int32(payload, (int32_t)(brakeCurrent * 1000), &index);
 
-    // Stromwert in mA umrechnen (als 32-Bit Ganzzahl)
-    int32_t val = (int32_t)(current * 1000.0);
-
-    // Den 32-Bit Wert manuell in 4 einzelne Bytes aufteilen (Big-Endian)
-    payload[index++] = (val >> 24) & 0xFF;
-    payload[index++] = (val >> 16) & 0xFF;
-    payload[index++] = (val >> 8)  & 0xFF;
-    payload[index++] = val & 0xFF;
-    // buffer_append_int32(payload, (int32_t)(brakeCurrent * 1000), &index);
-
-    // Paket an den VESC senden
-    packSendPayload(payload, 5);
+	packSendPayload(payload, 5);
 }
 
 void VescUart::setRPM(float rpm) {

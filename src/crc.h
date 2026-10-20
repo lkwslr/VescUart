@@ -20,8 +20,6 @@
 #ifndef CRC_H_
 #define CRC_H_
 
-#include <stdint.h>
-
 /*
  * Functions
  */

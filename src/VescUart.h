@@ -2,7 +2,9 @@
 #define _VESCUART_h
 
 #include <Arduino.h>
-#include "datatypes.h"
+#include <datatypes.h>
+#include <buffer.h>
+#include <crc.h>
 
 class VescUart
 {
@@ -47,7 +49,7 @@ class VescUart
 		/**
 		 * @brief      Class constructor
 		 */
-		VescUart(uint32_t timeout_ms = 100);
+		explicit VescUart(uint32_t timeout_ms = 100);
 
 		/** Variabel to hold measurements returned from VESC */
 		dataPackage data;
@@ -157,10 +159,10 @@ class VescUart
         void setDuty(float duty);
 
         /**
-         * @brief Setzt den Haltestrom (Handbrake) für den VESC
-         * @param current Der Haltestrom in Ampere
-         */
-        void setHandbrake(float current);
+		 * @brief      Set the hand brake current to brake the motor
+		 * @param      brakeCurrent  - The current to apply
+		 */
+		void setHandBrakeCurrent(float brakeCurrent);
 
         /**
          * @brief      Set the duty of the motor
@@ -215,7 +217,7 @@ class VescUart
 		 * @brief      Verifies the message (CRC-16) and extracts the payload
 		 *
 		 * @param      message  - The received UART message
-		 * @param      lenMes   - The lenght of the message
+		 * @param      lenMes   - The length of the message
 		 * @param      payload  - The final payload ready to extract data from
 		 * @return     True if the process was a success
 		 */
